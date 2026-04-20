@@ -230,6 +230,7 @@ export default function MeditationTimer({ onClose, darkMode, onSessionComplete }
 
   // Log session to localStorage and notify parent when timer completes
   useEffect(() => {
+    if (!done) return;
     try {
       const todayStr = toDateStr(new Date());
       // Date-only log for streak heatmap
