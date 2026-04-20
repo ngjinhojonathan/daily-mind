@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 const QUOTES = [
   { q: "I am grateful for the simple moments that remind me life is beautiful." },
   { q: "I am grateful for the people who believed in me before I believed in myself." },
