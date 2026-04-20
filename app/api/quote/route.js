@@ -53,5 +53,7 @@ const QUOTES = [
 
 export async function GET() {
   const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
-  return Response.json(quote);
+  return Response.json(quote, {
+    headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
+  });
 }

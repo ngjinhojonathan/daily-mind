@@ -86,7 +86,7 @@ export default function Home() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/quote');
+      const res = await fetch(`/api/quote?t=${Date.now()}`, { cache: 'no-store' });
       if (!res.ok) throw new Error('Could not fetch quote');
       const data = await res.json();
       setQuote(data);
