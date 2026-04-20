@@ -2,6 +2,109 @@
 
 import { useState, useEffect, useRef } from 'react';
 
+// ── Web Audio ambient sound generators ──────────────────────────────────────
+// Each returns a cleanup function that fades out and stops the sound.
+
+function createRainSound(ctx) {
+  const bufferSize = ctx.sampleRate * 3;
+  const buffer = ctx.createBuffer(2, bufferSize, ctx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buffer.getChannelData(ch);
+    for (let i = 0; i < bufferSize; i++) d[i] = Math.random() * 2 - 1;
+  }
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.loop = true;
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 450;
+
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0, ctx.currentTime);
+  gain.gain.linearRampToValueAtTime(0.28, ctx.currentTime + 1.5);
+
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+  source.start();
+
+  return () => {
+    gain.gain.setValueAtTime(gain.gain.value, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + 0.8);
+    setTimeout(() => { try { source.stop(); } catch {} }, 950);
+  };
+}
+
+function createForestSound(ctx) {
+  const bufferSize = ctx.sampleRate * 3;
+  const buffer = ctx.createBuffer(2, bufferSize, ctx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buffer.getChannelData(ch);
+    for (let i = 0; i < bufferSize; i++) d[i] = Math.random() * 2 - 1;
+  }
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.loop = true;
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = 900;
+  filter.Q.value = 0.7;
+
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0, ctx.currentTime);
+  gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 1.5);
+
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+  source.start();
+
+  return () => {
+    gain.gain.setValueAtTime(gain.gain.value, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + 0.8);
+    setTimeout(() => { try { source.stop(); } catch {} }, 950);
+  };
+}
+
+function createBowlSound(ctx) {
+  const master = ctx.createGain();
+  master.gain.value = 1;
+  master.connect(ctx.destination);
+
+  let active = true;
+
+  function strike() {
+    if (!active) return;
+    const now = ctx.currentTime;
+    // Fundamental 432 Hz + harmonics for a rich singing-bowl timbre
+    [[432, 0.45], [864, 0.12], [1296, 0.05]].forEach(([freq, vol]) => {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      g.gain.setValueAtTime(vol, now);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + 7);
+      osc.connect(g);
+      g.connect(master);
+      osc.start(now);
+      osc.stop(now + 7);
+    });
+  }
+
+  strike();
+  const intervalId = setInterval(strike, 10000);
+
+  return () => {
+    active = false;
+    clearInterval(intervalId);
+    master.gain.setValueAtTime(master.gain.value, ctx.currentTime);
+    master.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
+  };
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 const MEDITATION_REMINDER_KEY = 'meditation_reminder_time';
 const MEDITATION_LOG_KEY = 'meditation_log';
 const MEDITATION_SESSIONS_KEY = 'meditation_sessions';
@@ -35,6 +138,11 @@ export default function MeditationTimer({ onClose, darkMode, onSessionComplete }
   const [secondsLeft, setSecondsLeft] = useState(DURATIONS[1].seconds);
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState(false);
+
+  // Ambient sound
+  const [activeSound, setActiveSound] = useState(null); // null | 'rain' | 'forest' | 'bowl'
+  const audioCtxRef = useRef(null);
+  const soundCleanupRef = useRef(null);
 
   // Reminder state
   const [reminderTime, setReminderTime] = useState('07:00');
@@ -87,9 +195,41 @@ export default function MeditationTimer({ onClose, darkMode, onSessionComplete }
     setPhaseIndex(0);
   }
 
+  // Start / stop ambient sound based on running state and selected sound
+  useEffect(() => {
+    // Stop any currently playing sound first
+    if (soundCleanupRef.current) {
+      soundCleanupRef.current();
+      soundCleanupRef.current = null;
+    }
+    if (!running || !activeSound) return;
+
+    // Lazily create AudioContext on first user gesture (browser policy)
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    const ctx = audioCtxRef.current;
+    if (ctx.state === 'suspended') ctx.resume();
+
+    if (activeSound === 'rain')   soundCleanupRef.current = createRainSound(ctx);
+    if (activeSound === 'forest') soundCleanupRef.current = createForestSound(ctx);
+    if (activeSound === 'bowl')   soundCleanupRef.current = createBowlSound(ctx);
+
+    return () => {
+      if (soundCleanupRef.current) { soundCleanupRef.current(); soundCleanupRef.current = null; }
+    };
+  }, [running, activeSound]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Clean up AudioContext on unmount
+  useEffect(() => {
+    return () => {
+      if (soundCleanupRef.current) soundCleanupRef.current();
+      if (audioCtxRef.current) audioCtxRef.current.close();
+    };
+  }, []);
+
   // Log session to localStorage and notify parent when timer completes
   useEffect(() => {
-    if (!done) return;
     try {
       const todayStr = toDateStr(new Date());
       // Date-only log for streak heatmap
@@ -186,6 +326,34 @@ export default function MeditationTimer({ onClose, darkMode, onSessionComplete }
             {d.label}
           </button>
         ))}
+      </div>
+
+      {/* Ambient sound picker */}
+      <div className="flex flex-col items-center gap-2">
+        <p className={`text-xs font-semibold uppercase tracking-wide ${sub}`}>Ambient Sound</p>
+        <div className="flex gap-2 justify-center flex-wrap">
+          {[
+            { id: null,     label: '🔇', name: 'Off'    },
+            { id: 'rain',   label: '🌧', name: 'Rain'   },
+            { id: 'forest', label: '🌲', name: 'Forest' },
+            { id: 'bowl',   label: '🔔', name: 'Bowl'   },
+          ].map((s) => (
+            <button
+              key={s.id ?? 'off'}
+              onClick={() => setActiveSound(s.id)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all hover:scale-105 active:scale-95 flex items-center gap-1 ${activeSound === s.id ? chipActive : chipInactive}`}
+            >
+              <span>{s.label}</span>
+              <span>{s.name}</span>
+            </button>
+          ))}
+        </div>
+        {activeSound && running && (
+          <p className={`text-xs ${sub}`}>Playing while meditating…</p>
+        )}
+        {activeSound && !running && (
+          <p className={`text-xs ${sub}`}>Will play when you start</p>
+        )}
       </div>
 
       {/* Breathing circle */}
