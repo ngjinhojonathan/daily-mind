@@ -52,6 +52,7 @@ public/
 ### 🧘 Meditation Tab
 - **Meditation timer** — 2 / 5 / 10 min durations with ▶ / ⏸ / ↺ controls
 - **Breathing guide** — animated circle with Inhale / Hold / Exhale / Rest phase labels (13s cycle matching CSS keyframes)
+- **Ambient sounds** — Rain 🌧 (white noise → low-pass 450 Hz), Forest 🌲 (white noise → band-pass 900 Hz), Singing Bowl 🔔 (sine oscillators at 432 / 864 / 1296 Hz struck every 10s); all via Web Audio API with smooth fade-in/out; Off option always available
 - **Session logging** — on timer completion, logs `{ date, durationSeconds, completedAt }` to localStorage
 - **Daily meditation reminder** — time picker inside the timer card; posts to service worker
 - **Streak stats** — Current streak 🔥, Longest streak 🏆, Total sessions ✨
@@ -115,11 +116,24 @@ Notifications auto-reschedule for the next day. `notificationclick` opens `/`.
 
 ---
 
+## Deployment
+
+- **GitHub:** https://github.com/ngjinhojonathan/daily-mind
+- **Vercel:** https://daily-mind-3og0lgrfb-ngjinhojonathans-projects.vercel.app
+- Auto-deploys on every push to `main`
+- `export const dynamic = 'force-dynamic'` + `Cache-Control: no-store` on API route prevents quote caching
+- Client fetch uses `?t=${Date.now()}` + `cache: 'no-store'` for browser cache-busting
+
+---
+
 ## Suggested Next Steps
 
-- [ ] Deploy to Vercel for a shareable link (`npx vercel` or push to GitHub + import at vercel.com)
+- [x] Deploy to Vercel
+- [x] Ambient background sounds (Web Audio API — rain, forest, bowl)
+- [ ] Gratitude journal entries (let user write their own entries, not just view quotes)
+- [ ] Mood check-in (emoji scale before/after session, weekly trend chart)
+- [ ] Multiple breathing modes (box breathing 4-4-4-4, 4-7-8)
 - [ ] Milestone badges (unlock at 1, 7, 21, 30, 100 sessions)
 - [ ] Weekly summary ("You meditated 5/7 days for 35 min total")
-- [ ] Multiple breathing modes (box breathing 4-4-4-4, 4-7-8)
-- [ ] Ambient background sounds (Web Audio API)
+- [ ] "On This Day" — show past gratitude entries from same date
 - [ ] Streak freeze mechanic (1 grace day per week)
