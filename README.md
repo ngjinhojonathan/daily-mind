@@ -2,7 +2,7 @@
 
 A personal daily gratitude and meditation web app. No external APIs — fully offline-capable, all data stored in your browser.
 
-**Live:** https://daily-mind-3og0lgrfb-ngjinhojonathans-projects.vercel.app
+**Live:** https://daily-mind-l9fz0q8fd-ngjinhojonathans-projects.vercel.app/
 
 ---
 
