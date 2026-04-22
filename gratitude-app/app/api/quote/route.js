@@ -1,5 +1,3 @@
-export const dynamic = 'force-dynamic';
-
 const QUOTES = [
   { q: "I am grateful for the simple moments that remind me life is beautiful." },
   { q: "I am grateful for the people who believed in me before I believed in myself." },
@@ -53,7 +51,5 @@ const QUOTES = [
 
 export async function GET() {
   const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
-  return Response.json(quote, {
-    headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
-  });
+  return Response.json(quote);
 }

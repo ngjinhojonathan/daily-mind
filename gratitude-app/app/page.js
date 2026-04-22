@@ -5,6 +5,7 @@ import QuoteCard from './components/QuoteCard';
 import FavouritesPanel from './components/FavouritesPanel';
 import MeditationTimer from './components/MeditationTimer';
 import StreakPanel from './components/StreakPanel';
+import ReadingTracker from './components/ReadingTracker';
 
 const STORAGE_KEY = 'gratitude_favourites';
 const THEME_KEY = 'gratitude_theme';
@@ -137,6 +138,13 @@ export default function Home() {
   const tabInactive = darkMode ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600';
   const navLink = darkMode ? 'text-gray-400 hover:text-emerald-400' : 'text-gray-500 hover:text-emerald-600';
 
+  const tabHeadings = {
+    gratitude: { icon: '🌿', title: 'Gratitude', sub: 'A daily dose of uplifting wisdom' },
+    meditation: { icon: '🧘', title: 'Meditation', sub: 'Breathe, focus, and be present' },
+    reading: { icon: '📖', title: 'Reading', sub: 'Build your daily reading habit' },
+  };
+  const currentTab = tabHeadings[activeTab] || tabHeadings.gratitude;
+
   return (
     <main className={`min-h-screen ${bg} flex flex-col items-center px-4 py-8 gap-5 transition-colors duration-300`}>
       {/* Personal mantra */}
@@ -148,11 +156,9 @@ export default function Home() {
       <div className="w-full max-w-lg flex items-center justify-between">
         <div className="text-center flex-1">
           <h1 className={`text-3xl md:text-4xl font-bold ${headingColor} tracking-tight`}>
-            {activeTab === 'gratitude' ? '🌿 Gratitude' : '🧘 Meditation'}
+            {currentTab.icon} {currentTab.title}
           </h1>
-          <p className={`${subColor} mt-1 text-sm`}>
-            {activeTab === 'gratitude' ? 'A daily dose of uplifting wisdom' : 'Breathe, focus, and be present'}
-          </p>
+          <p className={`${subColor} mt-1 text-sm`}>{currentTab.sub}</p>
         </div>
         <button
           onClick={() => setDarkMode((v) => !v)}
@@ -168,6 +174,7 @@ export default function Home() {
         {[
           { id: 'gratitude', label: '🌿 Gratitude' },
           { id: 'meditation', label: '🧘 Meditation' },
+          { id: 'reading', label: '📖 Reading' },
         ].map(({ id, label }) => (
           <button
             key={id}
@@ -228,6 +235,11 @@ export default function Home() {
             embedded
           />
         </div>
+      )}
+
+      {/* Reading tab */}
+      {activeTab === 'reading' && (
+        <ReadingTracker darkMode={darkMode} />
       )}
 
       <footer className={`text-xs ${footerColor} mt-2`}>
